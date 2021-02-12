@@ -3,10 +3,12 @@
 
 namespace Game {
     class Creature {
-        int row;
-        int col;
         int type;
         int points;
+
+        protected:
+            int row;
+            int col;
 
         public:
             Creature();
@@ -17,6 +19,12 @@ namespace Game {
             void setPosition(int a_row, int a_col);
             void addPoints(int a_point);
             void showCurrentPoints(); // show collected reward points
+    };
+
+    class Monster : public Creature {
+        public:
+            Monster(int row, int col);
+            void getMove(int& next_row, int& next_col);
     };
 
     class Maze {
@@ -30,7 +38,8 @@ namespace Game {
             void readMaze(); // read maze from text file and populate mat
             void drawMaze();
             void deleteMaze();
-            void updateMaze(Creature p, int row_, int col_); // update maze based on location of pacman object p and its previous location
+            template <class T>
+            void updateMaze(T p, int row_, int col_); // update maze based on location of pacman object p and its previous location
             bool isValidMove(int nrow, int ncol); // Check if the move to new location (nrow,ncol) is valid
             void placeCreatureInMaze(Creature p); // Position pacman object p into the maze
             int getReward(int r, int c); // return points as reward if move into food mat[i][j]=2 at location (r,c)
@@ -38,7 +47,9 @@ namespace Game {
 
     class CGame {
         public:
-            void checkMove(char move, Maze& a_maze , Creature& a_creature); // check if the move by creature is valid or not
+            bool gameOver;
+            CGame();
+            void checkMove(char move, Maze& a_maze , Creature& a_creature, Monster& monster); // check if the move by creature is valid or not
     };
 }
 
