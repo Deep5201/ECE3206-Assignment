@@ -24,12 +24,11 @@ int main() {
 	
 	m1.drawMaze();
 	Creature p(1, 3, 1); // starting position of pacman in maze at(1,3) where type=1 is pacman
-	Monster m(3, 1);
+	Monster m(4, 5); // starting position of monster in maze at(4,5)
 	m1.placeCreatureInMaze(p);
 	m1.placeCreatureInMaze(m);
 	m1.drawMaze();
 
-	bool status;
 	char move='y';
 	while (move != 'q') {
 		m1.drawMaze();
@@ -37,15 +36,17 @@ int main() {
 		p.showCurrentPoints();
 		p.showCreaturePosition();
 		m.showCreaturePosition();
-		if (game1.gameOver) {
-			cout << endl << "Game Over!" << endl << endl;
+		// if game is over, exit loop
+		if (game1.gameOver != 0) {
+			cout << endl << "Game Over!" << endl;
+			if (game1.gameOver == 1) cout << "You managed to eat all the food." << endl << endl;
+			else if (game1.gameOver == -1) cout << "You were eaten by the monster." << endl << endl;
 			break;
 		}
 		cout << endl << "enter move >> ";
 		cin >> move;
 		// check if move is  valid in the maze
 		game1.checkMove(move, m1, p, m); // if it is valid, update the pacman position and update maze
-		m1.showMazeProperty();
 	}
 	
 	
@@ -53,4 +54,3 @@ int main() {
 	system("pause");
 	return 1;
 }
-
