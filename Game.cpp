@@ -12,6 +12,7 @@ Creature::Creature():points(0) {}
 Creature::Creature(int a_row, int a_col, int a_type):points(0), row(a_row), col(a_col), type(a_type) {}
 
 int Creature::getType() const {
+    //converts the types of creatures to make them suitable for the Maze class
     switch (type) {
         case 1:
             return 3;
@@ -46,12 +47,15 @@ void Creature::showCurrentPoints() {
 }
 
 
-Monster::Monster(int row, int col) : Creature(row, col, 2) {
+Monster::Monster(int row, int col) : Creature(row, col, 2) { // Monster objects are initialised as type 2 Creatures by default
+    // initialise random number generator 
     srand(time(0));
 }
 
 void Monster::getMove(int& next_row, int& next_col) {
-    int prev_row = row, prev_col = col, move = rand() % 3;
+    int prev_row = row, prev_col = col;
+    // move monster in a random direction
+    int move = rand() % 4;
     switch(move) {
         case 0:
             prev_row += 1;
@@ -74,7 +78,7 @@ void Monster::getMove(int& next_row, int& next_col) {
 }
 
 
-Maze::Maze():numRow(0), numCol(0) {}
+Maze::Maze():numRow(0), numCol(0), prevLoc(2) {} // prevLoc = 2 because game spawns monster at a position that has food
 
 void Maze::showMazeProperty() {
     cout << "Num rows = " << numRow << endl;
@@ -154,15 +158,22 @@ void Maze::deleteMaze() {
     delete[] mat;
 }
 
-template <class T>
-void Maze::updateMaze(T p, int row_, int col_) {
+void Maze::updateMaze(Creature& p, int row_, int col_) {
+    int type = p.getType();
     int prevRow, prevCol;
     p.getPosition(prevRow, prevCol);
-    mat[prevRow][prevCol] = 0;
-    mat[row_][col_] = p.getType();
+    if (type == 4) {
+        // this basically restores the position type of whatever position the monster moves into
+        // it is done to ensure the monster doesn't eat the food too
+        mat[prevRow][prevCol] = prevLoc;
+        prevLoc = mat[row_][col_];
+    } else {
+        mat[prevRow][prevCol] = 0;
+    }
+    mat[row_][col_] = type;
 }
 
-void Maze::placeCreatureInMaze(Creature p) {
+void Maze::placeCreatureInMaze(Creature& p) {
     int c_row, c_col;
     p.getPosition(c_row, c_col);
     mat[c_row][c_col] = p.getType();
@@ -179,13 +190,40 @@ int Maze::getReward(int r, int c) {
     return mat[r][c] == 2 ? 1 : 0;
 }
 
+int Maze::countFood() {
+    int foodCount = 0;
+    for (int i{}; i<numRow; i++) {
+        for (int j{}; j<numCol; j++) {
+            if (mat[i][j] == 2) foodCount++;
+        }
+    }
+    return foodCount;
+}
 
-CGame::CGame() : gameOver(false) {}
+
+CGame::CGame() : gameOver(0) {}
+
+void CGame::moveMonster(Maze& maze, Monster& monster) {
+    int next_row, next_col;
+    do {
+        // keep getting a new move until a valid move is found
+        monster.getMove(next_row, next_col);
+    } while (!maze.isValidMove(next_row, next_col));
+    maze.updateMaze(monster, next_row, next_col);
+    monster.setPosition(next_row, next_col);
+}
+
+void CGame::checkGameOver(Maze& maze, Creature& creature, Monster& monster) {
+    int p_row, p_col, m_row, m_col;
+    creature.getPosition(p_row, p_col);
+    monster.getPosition(m_row, m_col);
+    if (m_row == p_row && m_col == p_col) gameOver = -1;
+    if (maze.countFood() == 0) gameOver = 1;
+}
 
 void CGame::checkMove(char move, Maze& a_maze , Creature& a_creature, Monster& monster) {
-    int p_row, p_col, m_row, m_col;
+    int p_row, p_col;
     a_creature.getPosition(p_row, p_col);
-    monster.getPosition(m_row, m_col);
     switch (move) {
         case 'w':
             p_row -= 1;
@@ -208,12 +246,9 @@ void CGame::checkMove(char move, Maze& a_maze , Creature& a_creature, Monster& m
         a_creature.addPoints(a_maze.getReward(p_row, p_col));
         a_maze.updateMaze(a_creature, p_row, p_col);
         a_creature.setPosition(p_row, p_col);
-        do {
-            monster.getMove(m_row, m_col);
-        } while (!a_maze.isValidMove(m_row, m_col));
-        a_maze.updateMaze(monster, m_row, m_col);
-        monster.setPosition(m_row, m_col);
-        if (m_row == p_row && m_col == p_col) gameOver = true;
+        checkGameOver(a_maze, a_creature, monster); // check if pacman moves into monster's position
+        moveMonster(a_maze, monster);
+        checkGameOver(a_maze, a_creature, monster); // check if monster moves into pacman's position
     } else {
         cout << "Invalid move." << endl << endl;
     }
